@@ -9,53 +9,94 @@ use Psr\Http\Message\ServerRequestInterface;
 
 use Quanta\Http\MiddlewareStack;
 
-require_once __DIR__ . '/TestMiddleware.php';
+require_once __DIR__ . '/.test/TestMiddleware.php';
 
 describe('MiddlewareStack', function () {
 
-    beforeEach(function () {
-        $this->queue = new MiddlewareStack(...[
-            new TestMiddleware('m1'),
-            new TestMiddleware('m2'),
-            new TestMiddleware('m3'),
-        ]);
+    context('when there is no middleware', function () {
+
+        beforeEach(function () {
+
+            $this->middleware = new MiddlewareStack;
+
+        });
+
+        it('should implement MiddlewareInterface', function () {
+
+            expect($this->middleware)->toBeAnInstanceOf(MiddlewareInterface::class);
+
+        });
+
+        describe('->process()', function () {
+
+            it('should return the response produced by the given request handler', function () {
+
+                $request = mock(ServerRequestInterface::class);
+                $response = mock(ResponseInterface::class);
+
+                $handler = mock(RequestHandlerInterface::class);
+
+                $handler->handle->with($request)->returns($response);
+
+                $test = $this->middleware->process($request->get(), $handler->get());
+
+                expect($test)->toBe($response->get());
+
+            });
+
+        });
+
     });
 
-    it('should implement MiddlewareInterface', function () {
+    context('when there is at least one middleware', function () {
 
-        expect($this->queue)->toBeAnInstanceOf(MiddlewareInterface::class);
+        beforeEach(function () {
 
-    });
+            $this->middleware = new MiddlewareStack(...[
+                new TestMiddleware('m1'),
+                new TestMiddleware('m2'),
+                new TestMiddleware('m3'),
+            ]);
 
-    describe('->process()', function () {
+        });
 
-        it('should process the request/response using the middleware in LIFO order', function () {
+        it('should implement MiddlewareInterface', function () {
 
-            $request1 = mock(ServerRequestInterface::class);
-            $request2 = mock(ServerRequestInterface::class);
-            $request3 = mock(ServerRequestInterface::class);
-            $request4 = mock(ServerRequestInterface::class);
+            expect($this->middleware)->toBeAnInstanceOf(MiddlewareInterface::class);
 
-            $response1 = mock(ResponseInterface::class);
-            $response2 = mock(ResponseInterface::class);
-            $response3 = mock(ResponseInterface::class);
-            $response4 = mock(ResponseInterface::class);
+        });
 
-            $handler = mock(RequestHandlerInterface::class);
+        describe('->process()', function () {
 
-            $request1->withHeader->with('test', 'm3')->returns($request2);
-            $request2->withHeader->with('test', 'm2')->returns($request3);
-            $request3->withHeader->with('test', 'm1')->returns($request4);
+            it('should process the request/response using the middleware in LIFO order', function () {
 
-            $response1->withHeader->with('test', 'm1')->returns($response2);
-            $response2->withHeader->with('test', 'm2')->returns($response3);
-            $response3->withHeader->with('test', 'm3')->returns($response4);
+                $request1 = mock(ServerRequestInterface::class);
+                $request2 = mock(ServerRequestInterface::class);
+                $request3 = mock(ServerRequestInterface::class);
+                $request4 = mock(ServerRequestInterface::class);
 
-            $handler->handle->with($request4)->returns($response1);
+                $response1 = mock(ResponseInterface::class);
+                $response2 = mock(ResponseInterface::class);
+                $response3 = mock(ResponseInterface::class);
+                $response4 = mock(ResponseInterface::class);
 
-            $test = $this->queue->process($request1->get(), $handler->get());
+                $handler = mock(RequestHandlerInterface::class);
 
-            expect($test)->toBe($response4->get());
+                $request1->withHeader->with('test', 'm3')->returns($request2);
+                $request2->withHeader->with('test', 'm2')->returns($request3);
+                $request3->withHeader->with('test', 'm1')->returns($request4);
+
+                $response1->withHeader->with('test', 'm1')->returns($response2);
+                $response2->withHeader->with('test', 'm2')->returns($response3);
+                $response3->withHeader->with('test', 'm3')->returns($response4);
+
+                $handler->handle->with($request4)->returns($response1);
+
+                $test = $this->middleware->process($request1->get(), $handler->get());
+
+                expect($test)->toBe($response4->get());
+
+            });
 
         });
 
