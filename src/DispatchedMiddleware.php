@@ -7,19 +7,19 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-final class FIFODispatcher implements RequestHandlerInterface
+final class DispatchedMiddleware implements RequestHandlerInterface
 {
     /**
-     * The innermost request handler.
+     * The request handler given to the middleware.
      *
      * @var \Psr\Http\Server\RequestHandlerInterface
      */
     private $handler;
 
     /**
-     * The array of middleware processing the request/response in FIFO order.
+     * The middleware used to process the request.
      *
-     * @var \Psr\Http\Server\MiddlewareInterface[]
+     * @var \Psr\Http\Server\MiddlewareInterface
      */
     private $middleware;
 
@@ -27,9 +27,9 @@ final class FIFODispatcher implements RequestHandlerInterface
      * Constructor.
      *
      * @param \Psr\Http\Server\RequestHandlerInterface  $handler
-     * @param \Psr\Http\Server\MiddlewareInterface      ...$middleware
+     * @param \Psr\Http\Server\MiddlewareInterface      $middleware
      */
-    public function __construct(RequestHandlerInterface $handler, MiddlewareInterface ...$middleware)
+    public function __construct(RequestHandlerInterface $handler, MiddlewareInterface $middleware)
     {
         $this->handler = $handler;
         $this->middleware = $middleware;
@@ -40,6 +40,6 @@ final class FIFODispatcher implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        return (new MiddlewareQueue(...$this->middleware))->process($request, $this->handler);
+        return $this->middleware->process($request, $this->handler);
     }
 }

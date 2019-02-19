@@ -40,15 +40,6 @@ final class LIFODispatcher implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        $remaining = count($this->middleware);
-
-        if ($remaining == 0) {
-            return $this->handler->handle($request);
-        }
-
-        $middleware = array_slice($this->middleware, 0, -1);
-        $handler = new LIFODispatcher($this->handler, ...$middleware);
-
-        return $this->middleware[$remaining - 1]->process($request, $handler);
+        return (new MiddlewareStack(...$this->middleware))->process($request, $this->handler);
     }
 }

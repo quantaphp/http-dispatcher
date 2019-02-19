@@ -31,6 +31,14 @@ final class MiddlewareStack implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        return (new LIFODispatcher($handler, ...$this->middleware))->handle($request);
+        if (count($this->middleware) == 0) {
+            return $handler->handle($request);
+        }
+
+        $handler = new DispatchedMiddleware($handler, new MiddlewareStack(
+            ...array_slice($this->middleware, 0, -1)
+        ));
+
+        return end($this->middleware)->process($request, $handler);
     }
 }

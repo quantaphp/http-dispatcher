@@ -31,6 +31,14 @@ final class MiddlewareQueue implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        return (new FIFODispatcher($handler, ...$this->middleware))->handle($request);
+        if (count($this->middleware) == 0) {
+            return $handler->handle($request);
+        }
+
+        $handler = new DispatchedMiddleware($handler, new MiddlewareQueue(
+            ...array_slice($this->middleware, 1)
+        ));
+
+        return current($this->middleware)->process($request, $handler);
     }
 }
