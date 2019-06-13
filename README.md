@@ -4,6 +4,6 @@ This package provides a minimalist library for dispatching [Psr-15](https://www.
 
 **Require** php >= 7.0
 
-**Installation** `composer require quanta/middleware`
+**Installation** `composer require quanta/http-middleware`
 
 **Run tests** `./vendor/bin/kahlan`

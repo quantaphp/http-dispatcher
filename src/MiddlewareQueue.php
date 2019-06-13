@@ -39,6 +39,6 @@ final class MiddlewareQueue implements MiddlewareInterface
             ...array_slice($this->middleware, 1)
         ));
 
-        return current($this->middleware)->process($request, $handler);
+        return $this->middleware[0]->process($request, $handler);
     }
 }

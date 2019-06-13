@@ -1,5 +1,5 @@
 {
-    "name": "quanta/middleware",
+    "name": "quanta/http-middleware",
     "type": "library",
     "description": "Minimalist library for dispatching Psr-15 middleware",
     "keywords": [
@@ -9,10 +9,10 @@
         "request-handler"
     ],
     "license": "MIT",
-    "homepage": "https://github.com/quantaphp/middleware",
+    "homepage": "https://github.com/quantaphp/http-middleware",
     "support": {
-        "issues": "https://github.com/quantaphp/middleware/issues",
-        "source": "https://github.com/quantaphp/middleware"
+        "issues": "https://github.com/quantaphp/http-middleware/issues",
+        "source": "https://github.com/quantaphp/http-middleware"
     },
     "authors": [
         {
@@ -31,7 +31,8 @@
     },
     "require-dev": {
         "eloquent/phony-kahlan": "^2.0",
-        "kahlan/kahlan": "^4.5"
+        "kahlan/kahlan": "^4.5",
+        "phpstan/phpstan": "^0.11.8"
     },
     "autoload": {
         "psr-4": {

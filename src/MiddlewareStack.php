@@ -31,7 +31,9 @@ final class MiddlewareStack implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if (count($this->middleware) == 0) {
+        $nb = count($this->middleware);
+
+        if ($nb == 0) {
             return $handler->handle($request);
         }
 
@@ -39,6 +41,6 @@ final class MiddlewareStack implements MiddlewareInterface
             ...array_slice($this->middleware, 0, -1)
         ));
 
-        return end($this->middleware)->process($request, $handler);
+        return $this->middleware[$nb - 1]->process($request, $handler);
     }
 }
