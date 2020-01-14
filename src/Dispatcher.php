@@ -9,60 +9,56 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-final class Dispatcher extends AbstractDispatcher
+final class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
 {
     /**
-     * @var \Quanta\Http\AbstractDispatcher
+     * @var \Psr\Http\Server\RequestHandlerInterface
      */
-    private AbstractDispatcher $handler;
+    private RequestHandlerInterface $handler;
 
     /**
-     * @var \Psr\Http\Server\MiddlewareInterface
+     * @var \Quanta\Http\MutableRequestHandlerProxy
      */
-    private MiddlewareInterface $middleware;
+    private MutableRequestHandlerProxy $proxy;
 
     /**
-     * Return a new dispatcher dispatching the given middleware in LIFO order.
+     * Return a new dispatcher with the given middleware in LIFO order.
      *
      * @param \Psr\Http\Server\MiddlewareInterface ...$middleware
-     * @return \Quanta\Http\AbstractDispatcher
+     * @return \Quanta\Http\Dispatcher
      */
-    public static function stack(MiddlewareInterface ...$middleware): AbstractDispatcher
+    public static function stack(MiddlewareInterface ...$middleware): self
     {
-        return ($head = array_pop($middleware) ?? false)
-            ? new self(self::stack(...$middleware), $head)
-            : new FallbackDispatcher;
+        $proxy = new MutableRequestHandlerProxy;
+
+        $handler = RequestHandler::stack($proxy, ...$middleware);
+
+        return new self($handler, $proxy);
     }
 
     /**
-     * Return a new dispatcher dispatching the given middleware in FIFO order.
+     * Return a new dispatcher with the given middleware in FIFO order.
      *
      * @param \Psr\Http\Server\MiddlewareInterface ...$middleware
-     * @return \Quanta\Http\AbstractDispatcher
+     * @return \Quanta\Http\Dispatcher
      */
-    public static function queue(MiddlewareInterface ...$middleware): AbstractDispatcher
+    public static function queue(MiddlewareInterface ...$middleware): self
     {
-        return ($head = array_shift($middleware) ?? false)
-            ? new self(self::queue(...$middleware), $head)
-            : new FallbackDispatcher;
+        $proxy = new MutableRequestHandlerProxy;
+
+        $handler = RequestHandler::queue($proxy, ...$middleware);
+
+        return new self($handler, $proxy);
     }
 
     /**
-     * @param \Quanta\Http\AbstractDispatcher       $handler
-     * @param \Psr\Http\Server\MiddlewareInterface  $middleware
+     * @param \Psr\Http\Server\RequestHandlerInterface  $handler
+     * @param \Quanta\Http\MutableRequestHandlerProxy   $proxy
      */
-    public function __construct(AbstractDispatcher $handler, MiddlewareInterface $middleware)
+    private function __construct(RequesthandlerInterface $handler, MutableRequestHandlerProxy $proxy)
     {
         $this->handler = $handler;
-        $this->middleware = $middleware;
-    }
-
-    /**
-     * @inheritdoc
-     */
-    protected function setNextRequestHandler(RequestHandlerInterface $next): void
-    {
-        $this->handler->setNextRequestHandler($next);
+        $this->proxy = $proxy;
     }
 
     /**
@@ -70,17 +66,16 @@ final class Dispatcher extends AbstractDispatcher
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // the given request handler is passed down to the fallback dispatcher.
-        $this->handler->setNextRequestHandler($handler);
+        $this->proxy->setRequesthandler($handler);
 
-        return $this->middleware->process($request, $this->handler);
+        return $this->handler->handle($request);
     }
 
-   /**
+    /**
      * @inheritdoc
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        return $this->middleware->process($request, $this->handler);
+        return $this->handler->handle($request);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use function Eloquent\Phony\Kahlan\mock;
 
 use Psr\Http\Server\MiddlewareInterface;
@@ -8,242 +10,219 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 use Quanta\Http\Dispatcher;
-use Quanta\Http\AbstractDispatcher;
-use Quanta\Http\FallbackDispatcher;
-use Quanta\Http\NoResponseException;
 
-final class TestMiddleware implements MiddlewareInterface
-{
-    private string $value;
-
-    public function __construct(string $value)
-    {
-        $this->value = $value;
-    }
-
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
-    {
-        $request = $request->withHeader('test', $this->value);
-
-        $response = $handler->handle($request);
-
-        return $response->withHeader('test', $this->value);
-    }
-}
-
-describe('Dispatcher::stack()', function () {
-
-    context('when no middleware are given', function () {
-
-        it('should return a FallbackDispatcher', function () {
-
-            $test = Dispatcher::stack();
-
-            expect($test)->toBeAnInstanceOf(FallbackDispatcher::class);
-
-        });
-
-    });
-
-    context('when at least one middleware is given', function () {
-
-        it('should return a dispatcher with the given middleware in LIFO order', function () {
-
-            $middleware1 = mock(MiddlewareInterface::class);
-            $middleware2 = mock(MiddlewareInterface::class);
-            $middleware3 = mock(MiddlewareInterface::class);
-
-            $test = Dispatcher::stack(
-                $middleware1->get(),
-                $middleware2->get(),
-                $middleware3->get(),
-            );
-
-            expect($test)->toEqual(
-                new Dispatcher(
-                    new Dispatcher(
-                        new Dispatcher(
-                            new FallbackDispatcher,
-                            $middleware1->get(),
-                        ),
-                        $middleware2->get(),
-                    ),
-                    $middleware3->get(),
-                )
-            );
-
-        });
-
-    });
-
-});
-
-describe('Dispatcher::queue()', function () {
-
-    context('when no middleware are given', function () {
-
-        it('should return a FallbackDispatcher', function () {
-
-            $test = Dispatcher::queue();
-
-            expect($test)->toBeAnInstanceOf(FallbackDispatcher::class);
-
-        });
-
-    });
-
-    context('when at least one middleware is given', function () {
-
-        it('should return a dispatcher with the given middleware in FIFO order', function () {
-
-            $middleware1 = mock(MiddlewareInterface::class);
-            $middleware2 = mock(MiddlewareInterface::class);
-            $middleware3 = mock(MiddlewareInterface::class);
-
-            $test = Dispatcher::queue(
-                $middleware1->get(),
-                $middleware2->get(),
-                $middleware3->get(),
-            );
-
-            expect($test)->toEqual(
-                new Dispatcher(
-                    new Dispatcher(
-                        new Dispatcher(
-                            new FallbackDispatcher,
-                            $middleware3->get(),
-                        ),
-                        $middleware2->get(),
-                    ),
-                    $middleware1->get(),
-                )
-            );
-
-        });
-
-    });
-
-});
+require_once __DIR__ . '/classes/TestMiddleware.php';
 
 describe('Dispatcher', function () {
 
-    beforeEach(function () {
-        $this->handler = mock(AbstractDispatcher::class);
-        $this->middleware = mock(MiddlewareInterface::class);
+    context('when built as a stack', function () {
 
-        $this->dispatcher = new Dispatcher(
-            $this->handler->get(),
-            $this->middleware->get(),
-        );
-    });
+        it('should implement MiddlewareInterface', function () {
 
-    it('should extends AbstractDispatcher', function () {
+            $test = Dispatcher::stack();
 
-        expect($this->dispatcher)->toBeAnInstanceOf(AbstractDispatcher::class);
-
-    });
-
-    it('should implements MiddlewareInterface', function () {
-
-        expect($this->dispatcher)->toBeAnInstanceOf(MiddlewareInterface::class);
-
-    });
-
-    it('should implements RequestHandlerInterface', function () {
-
-        expect($this->dispatcher)->toBeAnInstanceOf(RequestHandlerInterface::class);
-
-    });
-
-    describe('->process()', function () {
-
-        context('when the inner middleware does not need a request handler to produce a response', function () {
-
-            beforeEach(function () {
-                $this->dispatcher = mock(AbstractDispatcher::class);
-                $this->middleware = mock(MiddlewareInterface::class);
-            });
-
-            it('should return the response produced by the inner middleware', function () {
-
-                $request = mock(ServerRequestInterface::class);
-                $response = mock(ResponseInterface::class);
-
-                $handler = mock(RequestHandlerInterface::class);
-
-                $this->middleware->process->with($request, $this->dispatcher)->returns($response);
-
-                $dispatcher = new Dispatcher($this->dispatcher->get(), $this->middleware->get());
-
-                $test = $dispatcher->process($request->get(), $handler->get());
-
-                expect($test)->toBe($response->get());
-
-            });
+            expect($test)->toBeAnInstanceOf(MiddlewareInterface::class);
 
         });
 
-        context('when the inner middleware needs a request handler to produce a response', function () {
+        it('should implement RequestHandlerInterface', function () {
 
-            beforeEach(function () {
-                $this->middleware = new TestMiddleware('value1');
-            });
+            $test = Dispatcher::stack();
 
-            context('when the inner dispatcher is an instance of FallbackDispatcher', function () {
+            expect($test)->toBeAnInstanceOf(RequestHandlerInterface::class);
 
-                it('should return the response produced by the inner middleware and the given request handler', function () {
+        });
 
-                    $dispatcher = new FallbackDispatcher;
+        context('when no middleware is given', function () {
 
-                    $request1 = mock(ServerRequestInterface::class);
-                    $request2 = mock(ServerRequestInterface::class);
-                    $response1 = mock(ResponseInterface::class);
-                    $response2 = mock(ResponseInterface::class);
+            context('when used as a middleware', function () {
 
+                it('should return the response produced by the given request handler with the given request', function () {
+
+                    $request = mock(ServerRequestInterface::class);
+                    $response = mock(ResponseInterface::class);
                     $handler = mock(RequestHandlerInterface::class);
 
-                    $request1->withHeader->with('test', 'value1')->returns($request2);
-                    $response1->withHeader->with('test', 'value1')->returns($response2);
+                    $handler->handle->with($request)->returns($response);
 
-                    $handler->handle->with($request2)->returns($response1);
+                    $dispatcher = Dispatcher::stack();
 
-                    $dispatcher = new Dispatcher($dispatcher, $this->middleware);
+                    $test = $dispatcher->process($request->get(), $handler->get());
 
-                    $test = $dispatcher->process($request1->get(), $handler->get());
-
-                    expect($test)->toBe($response2->get());
+                    expect($test)->toBe($response->get());
 
                 });
 
             });
 
-            context('when the inner dispatcher is an instance of Dispatcher', function () {
+            context('when used as a request handler', function () {
 
-                it('should return the response produced by the inner middleware and the given request handler', function () {
+                it('should throw an exception', function () {
 
-                    $dispatcher = new Dispatcher(new FallbackDispatcher, new TestMiddleware('value2'));
+                    $request = mock(ServerRequestInterface::class);
 
-                    $request1 = mock(ServerRequestInterface::class);
-                    $request2 = mock(ServerRequestInterface::class);
-                    $request3 = mock(ServerRequestInterface::class);
-                    $response1 = mock(ResponseInterface::class);
-                    $response2 = mock(ResponseInterface::class);
-                    $response3 = mock(ResponseInterface::class);
+                    $dispatcher = Dispatcher::stack();
 
-                    $handler = mock(RequestHandlerInterface::class);
+                    $test = fn () => $dispatcher->handle($request->get());
 
-                    $request1->withHeader->with('test', 'value1')->returns($request2);
-                    $request2->withHeader->with('test', 'value2')->returns($request3);
-                    $response1->withHeader->with('test', 'value2')->returns($response2);
-                    $response2->withHeader->with('test', 'value1')->returns($response3);
+                    expect($test)->toThrow(new Exception('No response to return'));
 
-                    $handler->handle->with($request3)->returns($response1);
+                });
 
-                    $dispatcher = new Dispatcher($dispatcher, $this->middleware);
+            });
 
-                    $test = $dispatcher->process($request1->get(), $handler->get());
+        });
 
-                    expect($test)->toBe($response3->get());
+        context('when at least one middleware is given', function () {
+
+            context('when used as a middleware', function () {
+
+                context('when a middleware produces a response', function () {
+
+                    it('should return the response produced by the middleware', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $middleware = mock(MiddlewareInterface::class);
+                        $handler = mock(RequesthandlerInterface::class);
+
+                        $request1->withHeader->with('test', 'value3')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value1')->returns($request4);
+                        $response1->withHeader->with('test', 'value1')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value3')->returns($response4);
+
+                        $middleware->process
+                            ->with($request4, Kahlan\Arg::toBeAnInstanceOf(RequestHandlerInterface::class))
+                            ->returns($response1);
+
+                        $dispatcher = Dispatcher::stack(
+                            $middleware->get(),
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = $dispatcher->process($request1->get(), $handler->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+                context('when no middleware return a response', function () {
+
+                    it('should return the response produced by the given request handler', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $handler = mock(RequesthandlerInterface::class);
+
+                        $request1->withHeader->with('test', 'value3')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value1')->returns($request4);
+                        $response1->withHeader->with('test', 'value1')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value3')->returns($response4);
+
+                        $handler->handle->with($request4)->returns($response1);
+
+                        $dispatcher = Dispatcher::stack(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = $dispatcher->process($request1->get(), $handler->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+            });
+
+            context('when used as a request handler', function () {
+
+                context('when a middleware produces a response', function () {
+
+                    it('should return the response produced by the middleware', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $middleware = mock(MiddlewareInterface::class);
+
+                        $request1->withHeader->with('test', 'value3')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value1')->returns($request4);
+                        $response1->withHeader->with('test', 'value1')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value3')->returns($response4);
+
+                        $middleware->process
+                            ->with($request4, Kahlan\Arg::toBeAnInstanceOf(RequestHandlerInterface::class))
+                            ->returns($response1);
+
+                        $dispatcher = Dispatcher::stack(
+                            $middleware->get(),
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = $dispatcher->handle($request1->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+                context('when no middleware return a response', function () {
+
+                    it('should throw an exception', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+
+                        $request1->withHeader->with('test', 'value3')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value1')->returns($request4);
+
+                        $dispatcher = Dispatcher::stack(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = fn () => $dispatcher->handle($request1->get());
+
+                        expect($test)->toThrow(new Exception('No response to return'));
+
+                    });
 
                 });
 
@@ -253,77 +232,214 @@ describe('Dispatcher', function () {
 
     });
 
-    describe('->handle()', function () {
+    context('when built as a queue', function () {
 
-        context('when the inner middleware does not need a request handler to produce a response', function () {
+        it('should implement MiddlewareInterface', function () {
 
-            beforeEach(function () {
-                $this->dispatcher = mock(AbstractDispatcher::class);
-                $this->middleware = mock(MiddlewareInterface::class);
-            });
+            $test = Dispatcher::queue();
 
-            it('should return the response produced by the inner middleware', function () {
-
-                $request = mock(ServerRequestInterface::class);
-                $response = mock(ResponseInterface::class);
-
-                $this->middleware->process->with($request, $this->dispatcher)->returns($response);
-
-                $dispatcher = new Dispatcher($this->dispatcher->get(), $this->middleware->get());
-
-                $test = $dispatcher->handle($request->get());
-
-                expect($test)->toBe($response->get());
-
-            });
+            expect($test)->toBeAnInstanceOf(MiddlewareInterface::class);
 
         });
 
-        context('when the inner middleware needs a request handler to produce a response', function () {
+        it('should implement RequestHandlerInterface', function () {
 
-            beforeEach(function () {
-                $this->middleware = new TestMiddleware('value1');
-            });
+            $test = Dispatcher::queue();
 
-            context('when the inner dispatcher is an instance of FallbackDispatcher', function () {
+            expect($test)->toBeAnInstanceOf(RequestHandlerInterface::class);
 
-                it('should throw a NoResponseException', function () {
+        });
 
-                    $dispatcher = new FallbackDispatcher;
+        context('when no middleware is given', function () {
 
-                    $request1 = mock(ServerRequestInterface::class);
-                    $request2 = mock(ServerRequestInterface::class);
+            context('when used as a middleware', function () {
 
-                    $request1->withHeader->with('test', 'value1')->returns($request2);
+                it('should return the response produced by the given request handler with the given request', function () {
 
-                    $dispatcher = new Dispatcher($dispatcher, $this->middleware);
+                    $request = mock(ServerRequestInterface::class);
+                    $response = mock(ResponseInterface::class);
+                    $handler = mock(RequestHandlerInterface::class);
 
-                    $test = fn () => $dispatcher->handle($request1->get());
+                    $handler->handle->with($request)->returns($response);
 
-                    expect($test)->toThrow(new NoResponseException);
+                    $dispatcher = Dispatcher::queue();
+
+                    $test = $dispatcher->process($request->get(), $handler->get());
+
+                    expect($test)->toBe($response->get());
 
                 });
 
             });
 
-            context('when the inner dispatcher is an instance of Dispatcher', function () {
+            context('when used as a request handler', function () {
 
-                it('should throw a NoResponseException', function () {
+                it('should throw an exception', function () {
 
-                    $dispatcher = new Dispatcher(new FallbackDispatcher, new TestMiddleware('value2'));
+                    $request = mock(ServerRequestInterface::class);
 
-                    $request1 = mock(ServerRequestInterface::class);
-                    $request2 = mock(ServerRequestInterface::class);
-                    $request3 = mock(ServerRequestInterface::class);
+                    $dispatcher = Dispatcher::queue();
 
-                    $request1->withHeader->with('test', 'value1')->returns($request2);
-                    $request2->withHeader->with('test', 'value2')->returns($request3);
+                    $test = fn () => $dispatcher->handle($request->get());
 
-                    $dispatcher = new Dispatcher($dispatcher, $this->middleware);
+                    expect($test)->toThrow(new Exception('No response to return'));
 
-                    $test = fn () => $dispatcher->handle($request1->get());
+                });
 
-                    expect($test)->toThrow(new NoResponseException);
+            });
+
+        });
+
+        context('when at least one middleware is given', function () {
+
+            context('when used as a middleware', function () {
+
+                context('when a middleware produces a response', function () {
+
+                    it('should return the response produced by the middleware', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $middleware = mock(MiddlewareInterface::class);
+                        $handler = mock(RequesthandlerInterface::class);
+
+                        $request1->withHeader->with('test', 'value1')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value3')->returns($request4);
+                        $response1->withHeader->with('test', 'value3')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value1')->returns($response4);
+
+                        $middleware->process
+                            ->with($request4, Kahlan\Arg::toBeAnInstanceOf(RequestHandlerInterface::class))
+                            ->returns($response1);
+
+                        $dispatcher = Dispatcher::queue(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                            $middleware->get(),
+                        );
+
+                        $test = $dispatcher->process($request1->get(), $handler->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+                context('when no middleware return a response', function () {
+
+                    it('should return the response produced by the given request handler', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $handler = mock(RequesthandlerInterface::class);
+
+                        $request1->withHeader->with('test', 'value1')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value3')->returns($request4);
+                        $response1->withHeader->with('test', 'value3')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value1')->returns($response4);
+
+                        $handler->handle->with($request4)->returns($response1);
+
+                        $dispatcher = Dispatcher::queue(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = $dispatcher->process($request1->get(), $handler->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+            });
+
+            context('when used as a request handler', function () {
+
+                context('when a middleware produces a response', function () {
+
+                    it('should return the response produced by the middleware', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+                        $response1 = mock(ResponseInterface::class);
+                        $response2 = mock(ResponseInterface::class);
+                        $response3 = mock(ResponseInterface::class);
+                        $response4 = mock(ResponseInterface::class);
+                        $middleware = mock(MiddlewareInterface::class);
+
+                        $request1->withHeader->with('test', 'value1')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value3')->returns($request4);
+                        $response1->withHeader->with('test', 'value3')->returns($response2);
+                        $response2->withHeader->with('test', 'value2')->returns($response3);
+                        $response3->withHeader->with('test', 'value1')->returns($response4);
+
+                        $middleware->process
+                            ->with($request4, Kahlan\Arg::toBeAnInstanceOf(RequestHandlerInterface::class))
+                            ->returns($response1);
+
+                        $dispatcher = Dispatcher::queue(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                            $middleware->get(),
+                        );
+
+                        $test = $dispatcher->handle($request1->get());
+
+                        expect($test)->toBe($response4->get());
+
+                    });
+
+                });
+
+                context('when no middleware return a response', function () {
+
+                    it('should throw an exception', function () {
+
+                        $request1 = mock(ServerRequestInterface::class);
+                        $request2 = mock(ServerRequestInterface::class);
+                        $request3 = mock(ServerRequestInterface::class);
+                        $request4 = mock(ServerRequestInterface::class);
+
+                        $request1->withHeader->with('test', 'value1')->returns($request2);
+                        $request2->withHeader->with('test', 'value2')->returns($request3);
+                        $request3->withHeader->with('test', 'value3')->returns($request4);
+
+                        $dispatcher = Dispatcher::queue(
+                            new Test\TestMiddleware('value1'),
+                            new Test\TestMiddleware('value2'),
+                            new Test\TestMiddleware('value3'),
+                        );
+
+                        $test = fn () => $dispatcher->handle($request1->get());
+
+                        expect($test)->toThrow(new Exception('No response to return'));
+
+                    });
 
                 });
 
