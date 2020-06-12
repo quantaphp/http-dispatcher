@@ -30,9 +30,9 @@
         "psr/http-server-middleware": "^1.0"
     },
     "require-dev": {
-        "eloquent/phony-kahlan": "^2.0",
-        "kahlan/kahlan": "^4.5",
-        "phpstan/phpstan": "^0.12.3"
+        "eloquent/phony-kahlan": "^3.0",
+        "kahlan/kahlan": "^4.7",
+        "phpstan/phpstan": "^0.12.28"
     },
     "autoload": {
         "psr-4": {

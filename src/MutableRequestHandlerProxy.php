@@ -11,9 +11,17 @@ use Psr\Http\Message\ServerRequestInterface;
 final class MutableRequestHandlerProxy implements RequestHandlerInterface
 {
     /**
-     * @var \Psr\Http\Server\RequestHandlerInterface|null
+     * @var \Psr\Http\Server\RequestHandlerInterface
      */
-    private ?RequestHandlerInterface $handler = null;
+    private RequestHandlerInterface $handler;
+
+    /**
+     * @param \Psr\Http\Server\RequestHandlerInterface $handler
+     */
+    public function __construct(RequestHandlerInterface $handler)
+    {
+        $this->handler = $handler;
+    }
 
     /**
      * @param \Psr\Http\Server\RequestHandlerInterface $handler
@@ -29,10 +37,6 @@ final class MutableRequestHandlerProxy implements RequestHandlerInterface
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        if (is_null($this->handler)) {
-            throw new \Exception('No response to return');
-        }
-
         return $this->handler->handle($request);
     }
 }

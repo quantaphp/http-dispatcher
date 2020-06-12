@@ -8,53 +8,53 @@ use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
-use Quanta\Http\NoResponseException;
 use Quanta\Http\MutableRequestHandlerProxy;
 
 describe('MutableRequestHandlerProxy', function () {
 
     beforeEach(function () {
-        $this->handler = new MutableRequestHandlerProxy;
+        $this->delegate = mock(RequestHandlerInterface::class);
+
+        $this->handler = new MutableRequestHandlerProxy(
+            $this->delegate->get(),
+        );
     });
 
     it('should implements RequestHandlerInterface', function () {
-
         expect($this->handler)->toBeAnInstanceOf(RequestHandlerInterface::class);
-
     });
 
     describe('->handle()', function () {
 
-        context('when a request handler is set', function () {
+        context('when no request handler has been set', function () {
 
-            it('should return the response produced by the request handler', function () {
-
+            it('should proxy the initial request handler', function () {
                 $request = mock(ServerRequestInterface::class);
                 $response = mock(ResponseInterface::class);
-                $handler = mock(RequestHandlerInterface::class);
 
-                $handler->handle->with($request)->returns($response);
-
-                $this->handler->setRequestHandler($handler->get());
+                $this->delegate->handle->with($request)->returns($response);
 
                 $test = $this->handler->handle($request->get());
 
                 expect($test)->toBe($response->get());
-
             });
 
         });
 
-        context('when no request handler is set', function () {
+        context('when a request handler has been set', function () {
 
-            it('should throw an exception', function () {
-
+            it('should proxy the new request handler', function () {
                 $request = mock(ServerRequestInterface::class);
+                $response = mock(ResponseInterface::class);
+                $delegate = mock(RequestHandlerInterface::class);
 
-                $test = fn () => $this->handler->handle($request->get());
+                $delegate->handle->with($request)->returns($response);
 
-                expect($test)->toThrow(new Exception('No response to return'));
+                $this->handler->setRequestHandler($delegate->get());
 
+                $test = $this->handler->handle($request->get());
+
+                expect($test)->toBe($response->get());
             });
 
         });

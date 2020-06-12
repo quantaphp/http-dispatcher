@@ -22,11 +22,9 @@ describe('RequestHandler::stack()', function () {
     context('when no middleware is given', function () {
 
         it('should return the given request handler', function () {
-
             $test = RequestHandler::stack($this->handler);
 
             expect($test)->toBe($this->handler);
-
         });
 
     });
@@ -34,7 +32,6 @@ describe('RequestHandler::stack()', function () {
     context('when at least one middleware is given', function () {
 
         it('should return a RequestHandler with the given middleware in LIFO order', function () {
-
             $middleware1 = mock(MiddlewareInterface::class)->get();
             $middleware2 = mock(MiddlewareInterface::class)->get();
             $middleware3 = mock(MiddlewareInterface::class)->get();
@@ -54,7 +51,6 @@ describe('RequestHandler::stack()', function () {
                     $middleware3,
                 )
             );
-
         });
 
     });
@@ -70,11 +66,9 @@ describe('RequestHandler::queue()', function () {
     context('when no middleware is given', function () {
 
         it('should return the given request handler', function () {
-
             $test = RequestHandler::queue($this->handler);
 
             expect($test)->toBe($this->handler);
-
         });
 
     });
@@ -82,7 +76,6 @@ describe('RequestHandler::queue()', function () {
     context('when at least one middleware is given', function () {
 
         it('should return a RequestHandler with the given middleware in FIFO order', function () {
-
             $middleware1 = mock(MiddlewareInterface::class)->get();
             $middleware2 = mock(MiddlewareInterface::class)->get();
             $middleware3 = mock(MiddlewareInterface::class)->get();
@@ -102,7 +95,6 @@ describe('RequestHandler::queue()', function () {
                     $middleware1,
                 )
             );
-
         });
 
     });
@@ -120,15 +112,12 @@ describe('RequestHandler', function () {
     });
 
     it('should implements RequestHandlerInterface', function () {
-
         expect($this->handler)->toBeAnInstanceOf(RequestHandlerInterface::class);
-
     });
 
     describe('->process()', function () {
 
         it('should return the response produced by the middleware and the request handler', function () {
-
             $request1 = mock(ServerRequestInterface::class);
             $request2 = mock(ServerRequestInterface::class);
             $response1 = mock(ResponseInterface::class);
@@ -142,7 +131,6 @@ describe('RequestHandler', function () {
             $test = $this->handler->handle($request1->get());
 
             expect($test)->toBe($response2->get());
-
         });
 
     });

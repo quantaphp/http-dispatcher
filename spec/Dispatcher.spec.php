@@ -10,6 +10,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 use Quanta\Http\Dispatcher;
+use Quanta\Http\NoResponseRequestHandler;
 
 require_once __DIR__ . '/classes/TestMiddleware.php';
 
@@ -18,27 +19,22 @@ describe('Dispatcher', function () {
     context('when built as a stack', function () {
 
         it('should implement MiddlewareInterface', function () {
-
             $test = Dispatcher::stack();
 
             expect($test)->toBeAnInstanceOf(MiddlewareInterface::class);
-
         });
 
         it('should implement RequestHandlerInterface', function () {
-
             $test = Dispatcher::stack();
 
             expect($test)->toBeAnInstanceOf(RequestHandlerInterface::class);
-
         });
 
         context('when no middleware is given', function () {
 
-            context('when used as a middleware', function () {
+            describe('->process()', function () {
 
                 it('should return the response produced by the given request handler with the given request', function () {
-
                     $request = mock(ServerRequestInterface::class);
                     $response = mock(ResponseInterface::class);
                     $handler = mock(RequestHandlerInterface::class);
@@ -50,23 +46,20 @@ describe('Dispatcher', function () {
                     $test = $dispatcher->process($request->get(), $handler->get());
 
                     expect($test)->toBe($response->get());
-
                 });
 
             });
 
-            context('when used as a request handler', function () {
+            describe('->handle()', function () {
 
                 it('should throw an exception', function () {
-
                     $request = mock(ServerRequestInterface::class);
 
                     $dispatcher = Dispatcher::stack();
 
                     $test = fn () => $dispatcher->handle($request->get());
 
-                    expect($test)->toThrow(new Exception('No response to return'));
-
+                    expect($test)->toThrow(new Exception(NoResponseRequestHandler::MESSAGE));
                 });
 
             });
@@ -75,12 +68,11 @@ describe('Dispatcher', function () {
 
         context('when at least one middleware is given', function () {
 
-            context('when used as a middleware', function () {
+            describe('->process()', function () {
 
                 context('when a middleware produces a response', function () {
 
                     it('should return the response produced by the middleware', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -113,7 +105,6 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->process($request1->get(), $handler->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
@@ -121,7 +112,6 @@ describe('Dispatcher', function () {
                 context('when no middleware return a response', function () {
 
                     it('should return the response produced by the given request handler', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -150,19 +140,17 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->process($request1->get(), $handler->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
 
             });
 
-            context('when used as a request handler', function () {
+            describe('->handle()', function () {
 
                 context('when a middleware produces a response', function () {
 
                     it('should return the response produced by the middleware', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -194,7 +182,6 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->handle($request1->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
@@ -202,7 +189,6 @@ describe('Dispatcher', function () {
                 context('when no middleware return a response', function () {
 
                     it('should throw an exception', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -220,8 +206,7 @@ describe('Dispatcher', function () {
 
                         $test = fn () => $dispatcher->handle($request1->get());
 
-                        expect($test)->toThrow(new Exception('No response to return'));
-
+                        expect($test)->toThrow(new Exception(NoResponseRequestHandler::MESSAGE));
                     });
 
                 });
@@ -235,27 +220,22 @@ describe('Dispatcher', function () {
     context('when built as a queue', function () {
 
         it('should implement MiddlewareInterface', function () {
-
             $test = Dispatcher::queue();
 
             expect($test)->toBeAnInstanceOf(MiddlewareInterface::class);
-
         });
 
         it('should implement RequestHandlerInterface', function () {
-
             $test = Dispatcher::queue();
 
             expect($test)->toBeAnInstanceOf(RequestHandlerInterface::class);
-
         });
 
         context('when no middleware is given', function () {
 
-            context('when used as a middleware', function () {
+            describe('->process()', function () {
 
                 it('should return the response produced by the given request handler with the given request', function () {
-
                     $request = mock(ServerRequestInterface::class);
                     $response = mock(ResponseInterface::class);
                     $handler = mock(RequestHandlerInterface::class);
@@ -267,23 +247,20 @@ describe('Dispatcher', function () {
                     $test = $dispatcher->process($request->get(), $handler->get());
 
                     expect($test)->toBe($response->get());
-
                 });
 
             });
 
-            context('when used as a request handler', function () {
+            describe('->handle()', function () {
 
                 it('should throw an exception', function () {
-
                     $request = mock(ServerRequestInterface::class);
 
                     $dispatcher = Dispatcher::queue();
 
                     $test = fn () => $dispatcher->handle($request->get());
 
-                    expect($test)->toThrow(new Exception('No response to return'));
-
+                    expect($test)->toThrow(new Exception(NoResponseRequestHandler::MESSAGE));
                 });
 
             });
@@ -292,12 +269,11 @@ describe('Dispatcher', function () {
 
         context('when at least one middleware is given', function () {
 
-            context('when used as a middleware', function () {
+            describe('->process()', function () {
 
                 context('when a middleware produces a response', function () {
 
                     it('should return the response produced by the middleware', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -330,7 +306,6 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->process($request1->get(), $handler->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
@@ -338,7 +313,6 @@ describe('Dispatcher', function () {
                 context('when no middleware return a response', function () {
 
                     it('should return the response produced by the given request handler', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -367,19 +341,17 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->process($request1->get(), $handler->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
 
             });
 
-            context('when used as a request handler', function () {
+            describe('->handle()', function () {
 
                 context('when a middleware produces a response', function () {
 
                     it('should return the response produced by the middleware', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -411,7 +383,6 @@ describe('Dispatcher', function () {
                         $test = $dispatcher->handle($request1->get());
 
                         expect($test)->toBe($response4->get());
-
                     });
 
                 });
@@ -419,7 +390,6 @@ describe('Dispatcher', function () {
                 context('when no middleware return a response', function () {
 
                     it('should throw an exception', function () {
-
                         $request1 = mock(ServerRequestInterface::class);
                         $request2 = mock(ServerRequestInterface::class);
                         $request3 = mock(ServerRequestInterface::class);
@@ -437,8 +407,7 @@ describe('Dispatcher', function () {
 
                         $test = fn () => $dispatcher->handle($request1->get());
 
-                        expect($test)->toThrow(new Exception('No response to return'));
-
+                        expect($test)->toThrow(new Exception(NoResponseRequestHandler::MESSAGE));
                     });
 
                 });

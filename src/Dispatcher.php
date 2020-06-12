@@ -29,7 +29,9 @@ final class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
      */
     public static function stack(MiddlewareInterface ...$middleware): self
     {
-        $proxy = new MutableRequestHandlerProxy;
+        $proxy = new MutableRequestHandlerProxy(
+            new NoResponseRequestHandler
+        );
 
         $handler = RequestHandler::stack($proxy, ...$middleware);
 
@@ -44,7 +46,9 @@ final class Dispatcher implements MiddlewareInterface, RequestHandlerInterface
      */
     public static function queue(MiddlewareInterface ...$middleware): self
     {
-        $proxy = new MutableRequestHandlerProxy;
+        $proxy = new MutableRequestHandlerProxy(
+            new NoResponseRequestHandler
+        );
 
         $handler = RequestHandler::queue($proxy, ...$middleware);
 
