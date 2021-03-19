@@ -11,15 +11,10 @@ use Psr\Http\Message\ServerRequestInterface;
 final class NoResponseRequestHandler implements RequestHandlerInterface
 {
     /**
-     * @var string
-     */
-    const MESSAGE = 'no response to return';
-
-    /**
      * @inheritdoc
      */
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        throw  new \Exception(self::MESSAGE);
+        throw new \Exception('No response returned');
     }
 }

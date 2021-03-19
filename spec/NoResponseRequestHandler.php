@@ -26,7 +26,7 @@ describe('NoResponseRequestHandler', function () {
 
             $test = fn () => $this->handler->handle($request->get());
 
-            expect($test)->toThrow(new Exception(NoResponseRequestHandler::MESSAGE));
+            expect($test)->toThrow(new Exception);
         });
 
     });
